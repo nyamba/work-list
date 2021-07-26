@@ -1,0 +1,47 @@
+service: upwork
+useDotenv: true
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: us-west-1
+  stage: prod
+  environment:
+    WORK_LIST_TN: ${self:service}-${opt:stage, self:provider.stage}-WORK-LIST
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: "*"
+
+package:
+  patterns:
+    - '!node_modules/**'
+
+plugins:
+  - serverless-offline
+
+functions:
+  fetch_works:
+    name: fetch-works
+    handler: index.fetch_works
+    events:
+      - http:
+          path: fetch
+          method: get
+
+resources:
+  Resources:
+    WorkListTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: ${self:service}-${opt:stage, self:provider.stage}-WORK-LIST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
