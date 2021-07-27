@@ -1,29 +1,49 @@
 service: upwork
 useDotenv: true
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+
+package:
+  patterns:
+    - '!.dynamodb'
+
 provider:
   name: aws
   runtime: nodejs10.x
   region: us-west-1
-  stage: prod
+  lambdaHashingVersion: 20201221
+  stage: ${opt:stage, 'dev'}
   environment:
     WORK_LIST_TN: ${self:service}-${opt:stage, self:provider.stage}-WORK-LIST
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-      Resource: "*"
-
-package:
-  patterns:
-    - '!node_modules/**'
+    FETCH_URL: ${env:FETCH_URL}
+    STAGE: ${self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:DeleteItem
+          Resource: "*"
 
 plugins:
   - serverless-offline
+  - serverless-dynamodb-local
 
 functions:
+  insert:
+    name: insert-single
+    handler: index.insert
+    events:
+      - http:
+          path: insert
+          method: get
   fetch_works:
     name: fetch-works
     handler: index.fetch_works
